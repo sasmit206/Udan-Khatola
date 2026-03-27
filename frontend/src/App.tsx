@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Plane, Users, MapPin, Search, Calendar as CalendarIcon } from "lucide-react"
-import { useState } from 'react'
 import ElasticSlider from '@/components/ui/elastic-slider'
+import { useState, useEffect } from 'react'
 
 const menuItems = [
   { label: 'Home', ariaLabel: 'Home', link: '/' },
@@ -15,22 +15,49 @@ const menuItems = [
   { label: 'Login', ariaLabel: 'Login', link: '/login' },
 ]
 
+
+
+const airportToCity: Record<string, string> = {
+  DEL: "Delhi",
+  BOM: "Mumbai",
+  BLR: "Bangalore",
+  MAA: "Chennai"
+};
+
 const socialItems = [
   { label: 'Twitter', link: 'https://twitter.com/sasmit206' },
   { label: 'Instagram', link: 'https://instagram.com' },
   { label: 'LinkedIn', link: 'https://linkedin.com' },
 ]
 
-const dummyFlights = [
-  { id: 1, from: "DEL", to: "BOM", date: "2026-03-20", price: "4,500", duration: "2h 15m", airline: "Udan Alpha", type: "Non-stop" },
-  { id: 2, from: "BLR", to: "MAA", date: "2026-03-21", price: "2,800", duration: "1h 05m", airline: "Udan Beta", type: "Non-stop" },
-  { id: 3, from: "CCU", to: "PNQ", date: "2026-03-22", price: "5,200", duration: "2h 45m", airline: "Udan Gamma", type: "1 Stop" },
-]
+type Flight = {
+  id: number;
+  source: string;
+  destination: string;
+  price: number;
+};
 
 function App() {
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [flights, setFlights] = useState<Flight[]>([]);
   const [date, setDate] = useState<Date>()
   const [origin, setOrigin] = useState('')
   const [destination, setDestination] = useState('')
+            
+
+  useEffect(() => {
+  fetch('http://localhost:3000/api/flights')
+  .then(res => {
+    if (!res.ok) throw new Error("Failed to fetch");
+    return res.json();
+  })
+    .then(data => {
+      console.log(data);
+      setFlights(data);
+    })
+    .catch(err => console.error(err));
+}, []);
+
 
   return (
     <div className="min-h-screen relative overflow-x-hidden">
@@ -53,14 +80,14 @@ function App() {
         logoUrl="/vite.svg"
         isFixed={true}
       />
-
+ 
       {/* Hero Section */}
       <section className="relative pt-40 pb-20 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="space-y-12 w-full max-w-4xl">
           <div className="space-y-6">
-            <h1 className="text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.8] text-white">
+            <h1 className="text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.8] text-slate-350 uppercase">
               UDAN <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-slate-400 to-slate-600">KHATOLA</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-slate-400 to-slate-600"> खटोला </span>
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
               air travel,
@@ -137,15 +164,51 @@ function App() {
                 <div className="pt-4 border-t border-white/5 mt-4">
                   <div className="flex flex-col items-center justify-center space-y-4">
                     <label className="text-[10px] uppercase tracking-widest text-slate-500 font-bold ml-1">Max Price</label>
-                    <ElasticSlider />
+                    <ElasticSlider onChange={(value: number) => setMaxPrice(value)} />
                   </div>
                 </div>
 
               </CardContent>
-              <CardFooter aria-hidden="false">
-                <Button className="w-full bg-slate-100 hover:bg-white text-slate-950 h-14 rounded-xl font-bold shadow-lg shadow-white/5 transition-all hover:scale-[1.01] active:scale-[0.99] uppercase tracking-widest">
-                  EXPLORE FLIGHTS
-                </Button>
+              <CardFooter>
+                              <Button
+                className="w-full bg-slate-200 border border-white/20 text-black hover:bg-black hover:text-white h-12 rounded-xl uppercase transition-all"
+                onClick={() => {
+                  let url = 'http://localhost:3000/api/flights';
+
+                  const params: string[] = [];
+
+                  const sourceCity =
+                    airportToCity[origin.trim().toUpperCase()] || origin.trim();
+
+                  const destCity =
+                    airportToCity[destination.trim().toUpperCase()] || destination.trim();
+
+                  if (sourceCity) {
+                    params.push(`source=${sourceCity}`);
+                  }
+
+                  if (destCity) {
+                    params.push(`destination=${destCity}`);
+                  }
+
+                  if (maxPrice !== null) {
+                    params.push(`maxPrice=${maxPrice}`);
+                  }
+
+                  if (params.length > 0) {
+                    url += '?' + params.join('&');
+                  }
+
+                  console.log("Calling:", url);
+
+                  fetch(url)
+                    .then(res => res.json())
+                    .then(data => setFlights(data))
+                    .catch(err => console.error(err));
+                }}
+              >
+                EXPLORE FLIGHTS
+              </Button>
               </CardFooter>
             </Card>
           </div>
@@ -166,65 +229,109 @@ function App() {
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {dummyFlights.map((flight) => (
-            <Card key={flight.id} className="group glass-dark border-white/5 interactive-card overflow-hidden shadow-2xl">
-              <div className="p-8 space-y-8">
-                <div className="flex justify-between items-start">
-                  <Badge variant="secondary" className="bg-white/5 text-slate-400 border-white/5 font-mono px-3 py-1 text-[10px] tracking-widest">
-                    {flight.airline}
-                  </Badge>
-                  <div className="text-right">
-                    <div className="text-3xl font-black tracking-tighter text-white">₹{flight.price}</div>
-                    <div className="text-[8px] text-slate-600 font-bold tracking-widest uppercase mt-1">Economy</div>
-                  </div>
-                </div>
+       <div className="grid lg:grid-cols-3 gap-6">
+  {flights.length === 0 ? (
+  <p className="text-white">No Flights Found!</p>
+) : (
+  flights.map((flight) => (
+    <Card key={flight.id} className="group glass-dark border-white/5 interactive-card overflow-hidden shadow-2xl">
+      <div className="p-6 space-y-4">
 
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-left">
-                    <div className="text-4xl font-black tracking-tighter text-white">{flight.from}</div>
-                    <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">DELHI</div>
-                  </div>
-
-                  <div className="flex-1 flex flex-col items-center gap-2 relative">
-                    <div className="text-[9px] font-mono text-slate-600 uppercase tracking-widest">{flight.duration}</div>
-                    <div className="w-full h-px bg-slate-800 relative">
-                      <Plane className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 text-slate-700 group-hover:text-white transition-colors" />
-                    </div>
-                    <div className="text-[8px] text-slate-800 font-bold uppercase tracking-widest">{flight.type}</div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-4xl font-black tracking-tighter text-white">{flight.to}</div>
-                    <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">MUMBAI</div>
-                  </div>
-                </div>
-
-                <Button className="w-full bg-white/5 border border-white/10 text-white hover:bg-white hover:text-slate-950 h-12 rounded-xl transition-all font-bold tracking-widest uppercase text-[10px]">
-                  BOOK TICKET
-                </Button>
-              </div>
-            </Card>
-          ))}
+        {/* Top Section */}
+        <div className="flex justify-between items-start">
+          <Badge className="bg-white/5 text-slate-400 border-white/5 font-mono px-3 py-1 text-[10px] tracking-widest">
+            UDAN KHATOLA AIRWAYS
+          </Badge>
+          <div className="text-right">
+            <div className="text-3xl font-black text-slate-500">₹{flight.price}</div>
+            <div className="text-[8px] text-slate-600 uppercase mt-1">Economy</div>
+          </div>
         </div>
-      </section>
 
+        {/* Middle Section */}
+              <div className="flex items-center justify-between gap-4">
+
+        {/* Source */}
+        <div className="flex flex-col items-start">
+          <div className="text-2xl font-bold text-white">
+            {flight.source}
+          </div>
+          <div className="text-xs text-slate-400">
+            {flight.source?.toUpperCase()}
+          </div>
+        </div>
+
+        {/* Middle */}
+        <div className="flex flex-col items-center flex-1">
+          <div className="text-xs text-slate-400">2h</div>
+
+          <div className="w-full h-px bg-slate-700 relative my-1">
+            <Plane className="absolute left-1/2 -translate-x-1/2 -top-2 w-4 h-4 text-slate-400" />
+          </div>
+
+          <div className="text-xs text-slate-400">Non-stop</div>
+        </div>
+
+        {/* Destination */}
+        <div className="flex flex-col items-end">
+          <div className="text-2xl font-bold text-white">
+            {flight.destination}
+          </div>
+          <div className="text-xs text-slate-400">
+            {flight.destination?.toUpperCase()}
+          </div>
+        </div>
+
+      </div>
+
+        {/* Button */}
+        <Button
+          className="w-full bg-slate-200 border border-white/20 text-black hover:bg-black hover:text-white h-12 rounded-xl uppercase transition-all"
+          onClick={() => {
+            fetch('http://localhost:3000/api/book', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                flight_id: flight.id
+              })
+            })
+              .then(() => {
+                alert("Booking Successful!");
+                fetch('http://localhost:3000/api/bookings')
+                  .then(res => res.json())
+                  .then(data => setBookings(data));
+              })
+              .catch(err => console.error(err));
+          }}
+        >
+          BOOK TICKET
+        </Button>
+
+      </div>
+      
+    </Card>
+    ))
+)}
+</div>
+</section>
       {/* Modern Footer */}
       <footer className="py-20 border-t border-white/5 px-6 mt-20 bg-slate-950/20">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12 font-mono">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 group">
-              <Plane className="w-5 h-5 text-white transform -rotate-45 group-hover:rotate-0 transition-transform duration-500" />
+              <Plane className="w-5 h-5 text-black transform -rotate-45 group-hover:rotate-0 transition-transform duration-500" />
             </div>
             <span className="text-lg font-black tracking-tighter text-white uppercase italic opacity-80">UDAN KHATOLA</span>
           </div>
           <div className="text-center md:text-right space-y-2">
-            <p className="text-slate-500 text-xs tracking-widest uppercase">© 2026 UDAN KHATOLA AVIATION SYSTEMS</p>
+            <p className="text-slate-500 text-xs tracking-widest uppercase">© 2026 उड़न खटोला AVIATION SYSTEMS</p>
             <p className="text-[10px] text-slate-700 uppercase tracking-[0.3em]">Navigating the digital skies since 2026</p>
           </div>
         </div>
       </footer>
     </div>
+    
+    
   )
 }
 
