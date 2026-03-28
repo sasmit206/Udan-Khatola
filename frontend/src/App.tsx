@@ -113,7 +113,7 @@ function App() {
                       <Input
                         value={origin}
                         onChange={(e) => setOrigin(e.target.value)}
-                        placeholder="Delhi (DEL)"
+                        placeholder="Source (DEL)"
                         className="pl-10 h-12 bg-white/20 backdrop-blur-md border border-white/20 text-black placeholder:text-slate-600 focus:bg-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all duration-300 pointer-events-auto relative z-20 font-medium"
                       />
                     </div>
@@ -125,7 +125,7 @@ function App() {
                       <Input
                         value={destination}
                         onChange={(e) => setDestination(e.target.value)}
-                        placeholder="Mumbai (BOM)"
+                        placeholder="Destination (BOM)"
                         className="pl-10 h-12 bg-white/20 backdrop-blur-md border border-white/20 text-black placeholder:text-slate-600 focus:bg-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all duration-300 pointer-events-auto relative z-20 font-medium"
                       />
                     </div>
@@ -240,7 +240,7 @@ function App() {
         {/* Top Section */}
         <div className="flex justify-between items-start">
           <Badge className="bg-white/5 text-slate-400 border-white/5 font-mono px-3 py-1 text-[10px] tracking-widest">
-            UDAN KHATOLA AIRWAYS
+            AIR INDIA
           </Badge>
           <div className="text-right">
             <div className="text-3xl font-black text-slate-500">₹{flight.price}</div>
@@ -290,16 +290,22 @@ function App() {
           onClick={() => {
             fetch('http://localhost:3000/api/book', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+              },
               body: JSON.stringify({
                 flight_id: flight.id
               })
             })
               .then(() => {
                 alert("Booking Successful!");
-                fetch('http://localhost:3000/api/bookings')
+                fetch('http://localhost:3000/api/bookings', {
+                  headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                  }
+                })
                   .then(res => res.json())
-                  .then(data => setBookings(data));
               })
               .catch(err => console.error(err));
           }}
